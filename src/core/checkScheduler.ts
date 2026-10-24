@@ -130,9 +130,9 @@ export function processScheduleTick(
     state: { ...advanced, phase: 'awaitingResponse', movingSinceLastCheck: 0 },
     check: {
       at:
-        segmentStart === null
+        segmentStart === null || state.movingSinceLastCheck >= selection.interval
           ? tick.at
-          : segmentStart + Math.max(0, selection.interval - state.movingSinceLastCheck),
+          : segmentStart + (selection.interval - state.movingSinceLastCheck),
       interval: selection.interval,
       reasons: selection.reasons,
     },

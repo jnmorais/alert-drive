@@ -284,6 +284,24 @@ describe('RF05 - verificações só com o veículo em movimento', () => {
 });
 
 describe('RF05 - intervalo reduzido durante a viagem', () => {
+  it('a verificação causada pelo intervalo reduzido nunca tem horário anterior à redução', () => {
+    let state = createCheckScheduler();
+    const start = DAY + hours(9);
+    const reducedAt = start + minutes(8);
+    let check: ScheduledCheck | null = null;
+    for (let at = start; at <= reducedAt && check === null; at += seconds(1)) {
+      const breakOverdue = at >= reducedAt;
+      const update = processScheduleTick(
+        state,
+        { at, movement: 'moving', context: { ...daytimeContext, breakOverdue } },
+        truck,
+      );
+      state = update.state;
+      check = update.check;
+    }
+    expect(check).toEqual({ at: reducedAt, interval: minutes(5), reasons: ['breakOverdue'] });
+  });
+
   it('viagem de madrugada é verificada a cada 5 minutos', () => {
     const start = DAY + hours(1);
     const checks = runTrip({ startAt: start, segments: [moving(minutes(16))], settings: car });
@@ -306,14 +324,14 @@ describe('RF05 - intervalo reduzido durante a viagem', () => {
     expect(checks.map((check) => check.reasons)).toEqual([['night'], [], []]);
   });
 
-  it('com a pausa vencida no meio da contagem, a verificação sai assim que o novo intervalo é atingido', () => {
+  it('com a pausa vencida no meio da contagem, a verificação sai e é registrada no instante em que o intervalo diminui', () => {
     const start = DAY + hours(9);
     const checks = runTrip({
       startAt: start,
       segments: [moving(minutes(7)), moving(minutes(2), true)],
       settings: truck,
     });
-    expect(checkTimes(checks, start)).toEqual([minutes(7) - TICK_STEP]);
+    expect(checkTimes(checks, start)).toEqual([minutes(7)]);
     expect(checks[0]).toMatchObject({ interval: minutes(5), reasons: ['breakOverdue'] });
   });
 });
