@@ -97,6 +97,34 @@ describe('RF14 - a conferência dos cenários detecta resultados errados', () =>
   });
 });
 
+describe('RF14 - conferências escritas em português para o relatório', () => {
+  it('a etapa final do S2 aparece com o nome do Quadro 1', () => {
+    const results = scenario('S2').verify(runScenario(scenario('S2'), 'car'));
+    expect(results.find((expectation) => expectation.description === 'etapa final')).toMatchObject({
+      expected: 'Etapa 3 – Máxima',
+      actual: 'Etapa 3 – Máxima',
+    });
+  });
+
+  it('as etapas dos episódios do S6 aparecem com o nome do Quadro 1', () => {
+    const results = scenario('S6').verify(runScenario(scenario('S6'), 'bus'));
+    expect(
+      results.find((expectation) => expectation.description === 'etapa máxima dos dois primeiros episódios'),
+    ).toMatchObject({
+      expected: 'Etapa 2 – Obrigatória, Etapa 2 – Obrigatória',
+      actual: 'Etapa 2 – Obrigatória, Etapa 2 – Obrigatória',
+    });
+  });
+
+  it('etapa ausente aparece como "nenhuma"', () => {
+    const run = runScenario(scenario('S4'), 'car', {
+      settings: { ...runScenario(scenario('S1'), 'car').settings, daytimeCheckInterval: hours(10) },
+    });
+    const results = scenario('S2').verify(run);
+    expect(results.find((expectation) => expectation.description === 'etapa final')?.actual).toBe('nenhuma');
+  });
+});
+
 describe('RF14 - execução dos cenários', () => {
   it('o cenário de madrugada começa à 01h no horário de Brasília', () => {
     const run = runScenario(scenario('S5'), 'truck');

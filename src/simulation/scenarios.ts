@@ -17,6 +17,7 @@ import {
   type TripUpdate,
 } from '../core/trip';
 import type { EpochMilliseconds, Milliseconds, VehicleType } from '../core/types';
+import { ALERT_STAGE_LABELS } from '../text/labels';
 import { localTimeOnSameDay } from './clock';
 import { formatDuration } from './format';
 
@@ -112,6 +113,14 @@ function expectTrue(description: string, actual: boolean, expected = 'sim'): Exp
   return { description, expected, actual: actual ? 'sim' : 'não', passed: actual };
 }
 
+function formatStage(stage: AlertStage | undefined): string {
+  return stage === undefined ? 'nenhuma' : ALERT_STAGE_LABELS[stage];
+}
+
+function formatStages(stages: (AlertStage | undefined)[]): string {
+  return stages.map(formatStage).join(', ');
+}
+
 function formatOptionalDuration(value: Milliseconds | undefined): string {
   return value === undefined ? 'ausente' : formatDuration(value);
 }
@@ -186,7 +195,12 @@ export const SCENARIOS: readonly Scenario[] = [
           lastCheck ? stageOffsets(lastCheck) : [],
           formatDurations,
         ),
-        expectEqual('etapa final', 'maximum', lastCheck?.stages[lastCheck.stages.length - 1]?.stage),
+        expectEqual<AlertStage | undefined>(
+          'etapa final',
+          'maximum',
+          lastCheck?.stages[lastCheck.stages.length - 1]?.stage,
+          formatStage,
+        ),
         expectTrue('alerta continua ativo ao fim, sem resposta', lastCheck?.outcome === null),
       ];
     },
@@ -314,6 +328,7 @@ export const SCENARIOS: readonly Scenario[] = [
           'etapa máxima dos dois primeiros episódios',
           ['mandatory', 'mandatory'],
           run.checks.slice(0, 2).map((check) => check.outcome?.maxStage),
+          formatStages,
         ),
         expectEqual('recomendações de parada imediata', 1, stopRecommendations.length),
         expectEqual(
