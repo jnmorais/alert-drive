@@ -27,7 +27,10 @@
           "imageWidth": 150,
           "backgroundColor": "#000000"
         }
-      ]
-    ]
+      ],
+      "expo-router",
+      "expo-status-bar"
+    ],
+    "scheme": "alert-drive"
   }
 }
