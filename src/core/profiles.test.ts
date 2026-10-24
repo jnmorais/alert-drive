@@ -11,7 +11,7 @@ import {
 } from './profiles';
 import { VEHICLE_TYPES } from './types';
 
-describe('RF02 - valores padrão dos perfis (Quadro 2)', () => {
+describe('RF01 - valores padrão dos perfis (Quadro 2)', () => {
   it.each([
     ['truck', hours(5.5), minutes(30), minutes(30), minutes(10), seconds(15)],
     ['bus', hours(4), minutes(30), minutes(30), minutes(10), seconds(10)],
