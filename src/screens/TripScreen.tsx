@@ -10,6 +10,7 @@ import { systemClock } from '../services/systemClock';
 import { deviceUtcOffsetMinutes } from '../services/timeZone';
 import { settingsFor } from '../state/preferences';
 import { usePreferencesStore } from '../state/PreferencesContext';
+import { useAlertRedirect } from '../state/useAlertRedirect';
 import { useTripController, useTripSnapshot } from '../state/TripContext';
 import { VEHICLE_TYPE_LABELS } from '../text/labels';
 import { SCREEN_TITLES } from '../text/screenTitles';
@@ -34,6 +35,7 @@ export default function TripScreen() {
   const snapshot = useTripSnapshot();
   const preferencesStore = usePreferencesStore();
   const startRequested = useRef(false);
+  useAlertRedirect();
 
   useEffect(() => {
     if (startRequested.current || controller.getSnapshot().trip !== null) {
