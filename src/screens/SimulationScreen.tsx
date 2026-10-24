@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { ActionButton } from '../components/ActionButton';
+import { AutomaticScenariosPanel } from '../components/AutomaticScenariosPanel';
 import { OptionButton } from '../components/OptionButton';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { Stepper } from '../components/Stepper';
@@ -156,6 +157,8 @@ export default function SimulationScreen() {
       <Text style={textStyle}>{SIMULATION_TOUCH_NOTE}</Text>
 
       <ActionButton label="Iniciar simulação" onPress={start} />
+
+      <AutomaticScenariosPanel />
     </ScreenContainer>
   );
 }
