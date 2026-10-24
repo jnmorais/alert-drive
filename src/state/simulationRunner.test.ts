@@ -19,11 +19,12 @@ interface PendingTimer {
 
 function createEnvironment() {
   let now = REAL_START;
+  let lateness = 0;
   const pending: PendingTimer[] = [];
   const realClock: Clock = { now: () => now };
   const timers: TimerScheduler = {
     schedule(callback, delay) {
-      const timer = { dueAt: now + Math.ceil(delay), callback, cancelled: false };
+      const timer = { dueAt: now + Math.ceil(delay) + lateness, callback, cancelled: false };
       pending.push(timer);
       return () => {
         timer.cancelled = true;
@@ -47,13 +48,17 @@ function createEnvironment() {
     now = target;
   }
 
+  function setLateness(value: number): void {
+    lateness = value;
+  }
+
   function activeTimers(): number {
     return pending.filter((timer) => !timer.cancelled).length;
   }
 
   const controller = createTripController({ timers });
   const runner = createSimulationRunner({ controller, timers, realClock });
-  return { controller, runner, advanceRealTime, activeTimers };
+  return { controller, runner, advanceRealTime, activeTimers, setLateness };
 }
 
 function setup(segments: SpeedSegment[], overrides: Partial<SimulationSetup> = {}): SimulationSetup {
@@ -151,7 +156,7 @@ describe('RF14 - simulação ao vivo com relógio acelerado', () => {
     expect(asked).toEqual([0, 1]);
   });
 
-  it('troca de trecho no horário do roteiro, com erro de no máximo 1 ms real, e registra a pausa', () => {
+  it('troca de trecho no horário exato do roteiro e registra a pausa', () => {
     const env = createEnvironment();
     env.runner.start(
       setup(
@@ -164,9 +169,7 @@ describe('RF14 - simulação ao vivo com relógio acelerado', () => {
     );
     env.advanceRealTime(seconds(31));
     const breaks = effectsOfType(env.controller.getSnapshot().effects, 'breakRegistered');
-    const delay = (breaks[0]?.stoppedSince ?? Number.POSITIVE_INFINITY) - (SIMULATED_START + minutes(10) + seconds(10));
-    expect(delay).toBeGreaterThanOrEqual(0);
-    expect(delay).toBeLessThanOrEqual(60);
+    expect(breaks[0]?.stoppedSince).toBe(SIMULATED_START + minutes(10) + seconds(10));
   });
 
   it('no fim do roteiro, para o veículo e mantém a viagem aberta', () => {
@@ -177,6 +180,56 @@ describe('RF14 - simulação ao vivo com relógio acelerado', () => {
     const trip = env.controller.getSnapshot().trip;
     expect(trip?.driveTimer.movement).toBe('stopped');
     expect(trip?.driveTimer.accumulatedDriving).toBe(minutes(5));
+  });
+});
+
+describe('RF14 - leituras no horário planejado mesmo com o temporizador atrasado', () => {
+  const DRIVE_STOP_DRIVE: SpeedSegment[] = [
+    { duration: minutes(10), speedKmh: 80 },
+    { duration: minutes(15), speedKmh: 0 },
+    { duration: minutes(10), speedKmh: 80 },
+  ];
+
+  it('com todos os disparos atrasados, a troca de trecho fica no horário exato do roteiro', () => {
+    const env = createEnvironment();
+    env.setLateness(2);
+    env.runner.start(setup(DRIVE_STOP_DRIVE, { speedFactor: 300, responder: () => seconds(5) }));
+    env.advanceRealTime(seconds(3));
+    expect(env.controller.getSnapshot().trip?.driveTimer.stoppedSince).toBe(SIMULATED_START + minutes(10));
+  });
+
+  it('uma parada exatamente igual à pausa mínima é registrada mesmo se só o início dela atrasar', () => {
+    const env = createEnvironment();
+    env.runner.start(setup(DRIVE_STOP_DRIVE, { speedFactor: 300, responder: () => seconds(5) }));
+    env.advanceRealTime(1400);
+    env.setLateness(2);
+    env.advanceRealTime(200);
+    env.setLateness(0);
+    env.advanceRealTime(seconds(6));
+    const breaks = effectsOfType(env.controller.getSnapshot().effects, 'breakRegistered');
+    expect(breaks).toHaveLength(1);
+    expect(breaks[0]?.stoppedSince).toBe(SIMULATED_START + minutes(10));
+  });
+
+  it('não perde a leitura quando um disparo da viagem chega antes dela', () => {
+    const env = createEnvironment();
+    env.runner.start(setup(ONE_HOUR_DRIVING, { speedFactor: 300 }));
+    env.advanceRealTime(2400);
+    env.setLateness(2);
+    env.advanceRealTime(200);
+    env.setLateness(0);
+    env.advanceRealTime(500);
+    const trip = env.controller.getSnapshot().trip;
+    expect(effectsOfType(env.controller.getSnapshot().effects, 'checkStarted')[0]?.at).toBe(SIMULATED_START + minutes(15));
+    expect(trip?.driveTimer.lastSampleAt).toBe(SIMULATED_START + minutes(15) + 600);
+  });
+
+  it('no fim do roteiro, a parada final fica no horário exato do fim', () => {
+    const env = createEnvironment();
+    env.setLateness(2);
+    env.runner.start(setup([{ duration: minutes(5), speedKmh: 80 }], { speedFactor: 300 }));
+    env.advanceRealTime(seconds(3));
+    expect(env.controller.getSnapshot().trip?.driveTimer.stoppedSince).toBe(SIMULATED_START + minutes(5));
   });
 });
 

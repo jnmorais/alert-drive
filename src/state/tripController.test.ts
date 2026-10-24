@@ -149,6 +149,26 @@ describe('Estado global da viagem - início e fim', () => {
   });
 });
 
+describe('RF14 - leitura de velocidade no horário informado', () => {
+  it('usa o horário informado em vez do relógio', () => {
+    const env = createTestEnvironment();
+    const controller = createTripController({ timers: env.timers });
+    controller.start(startParams(env.clock));
+    env.setNow(START + minutes(2));
+    controller.pushSpeedSample(80, START + minutes(1));
+    expect(controller.getSnapshot().trip?.driveTimer.lastSampleAt).toBe(START + minutes(1));
+  });
+
+  it('sem horário informado, usa o relógio', () => {
+    const env = createTestEnvironment();
+    const controller = createTripController({ timers: env.timers });
+    controller.start(startParams(env.clock));
+    env.setNow(START + minutes(2));
+    controller.pushSpeedSample(80);
+    expect(controller.getSnapshot().trip?.driveTimer.lastSampleAt).toBe(START + minutes(2));
+  });
+});
+
 describe('Estado global da viagem - avisos para a tela e os serviços', () => {
   it('avisa os assinantes a cada mudança e permite cancelar a assinatura', () => {
     const env = createTestEnvironment();

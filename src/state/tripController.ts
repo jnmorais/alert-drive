@@ -62,7 +62,7 @@ export interface TripController {
   subscribeEffects(listener: EffectsListener): () => void;
   start(params: StartTripParams): void;
   end(): void;
-  pushSpeedSample(speedKmh: number): void;
+  pushSpeedSample(speedKmh: number, at?: EpochMilliseconds): void;
   respond(at?: EpochMilliseconds): void;
   setChannel(channel: ConfigurableChannel, enabled: boolean): ChannelChangeError | null;
   toggleSilence(): ChannelChangeError | null;
@@ -223,11 +223,11 @@ export function createTripController({
       publish({ ...snapshot, trip, simulationMode: params.simulationMode, effects: [] }, []);
     },
     end,
-    pushSpeedSample(speedKmh) {
+    pushSpeedSample(speedKmh, at) {
       if (running === null || snapshot.trip === null) {
         return;
       }
-      apply(processTripSpeedSample(snapshot.trip, { at: running.clock.now(), speedKmh }), running);
+      apply(processTripSpeedSample(snapshot.trip, { at: at ?? running.clock.now(), speedKmh }), running);
     },
     respond,
     setChannel(channel, enabled) {

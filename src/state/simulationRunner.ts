@@ -128,23 +128,29 @@ export function createSimulationRunner({
     }
   }
 
+  function pushAtPlannedTime(current: ActiveRun, offset: Milliseconds, speedKmh: number): void {
+    const plannedAt = current.setup.startAt + offset;
+    const lastUpdateAt = controller.getSnapshot().trip?.lastUpdateAt ?? plannedAt;
+    controller.pushSpeedSample(speedKmh, Math.max(plannedAt, lastUpdateAt));
+  }
+
   function finish(current: ActiveRun): void {
-    controller.pushSpeedSample(STOPPED_SPEED_KMH);
+    pushAtPlannedTime(current, current.duration, STOPPED_SPEED_KMH);
     publish({ ...progress, status: 'finished', elapsed: current.duration, speedKmh: STOPPED_SPEED_KMH });
   }
 
-  function sample(current: ActiveRun): void {
+  function sample(current: ActiveRun, elapsed: Milliseconds): void {
     current.cancelSample = null;
-    const elapsed = elapsedOf(current);
     const speedKmh = speedAt(current.setup.segments, elapsed);
-    controller.pushSpeedSample(speedKmh);
+    pushAtPlannedTime(current, elapsed, speedKmh);
     const next = nextSampleOffset(current.setup.segments, elapsed, sampleInterval * current.clock.speedFactor());
     if (next === null) {
       finish(current);
       return;
     }
     publish({ ...progress, status: 'running', elapsed, speedKmh });
-    current.cancelSample = timers.schedule(() => sample(current), current.clock.toRealDelay(next - elapsed));
+    const delay = current.clock.toRealDelay(current.setup.startAt + next - current.clock.now());
+    current.cancelSample = timers.schedule(() => sample(current, next), delay);
   }
 
   function followTrip(current: ActiveRun): void {
@@ -206,7 +212,7 @@ export function createSimulationRunner({
         speedKmh: null,
         speedFactor: setup.speedFactor,
       });
-      sample(current);
+      sample(current, elapsedOf(current));
     },
     pause() {
       const current = run;
@@ -226,7 +232,7 @@ export function createSimulationRunner({
       current.clock.resume();
       controller.reschedule();
       scheduleResponse(current);
-      sample(current);
+      sample(current, elapsedOf(current));
     },
     stop,
   };
