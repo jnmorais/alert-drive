@@ -1,10 +1,16 @@
-import { minutes } from '../core/duration';
+import { minutes, seconds } from '../core/duration';
 import { averageResponseTime, type CheckLogEntry, highestStageInLog, type TripLog } from '../core/tripLog';
-import type { EpochMilliseconds } from '../core/types';
+import type { EpochMilliseconds, Milliseconds } from '../core/types';
 import { formatDuration } from '../simulation/format';
 import type { CompletedTrip } from '../state/tripController';
 import { ALERT_STAGE_LABELS, REDUCED_INTERVAL_REASON_LABELS, VEHICLE_TYPE_LABELS } from './labels';
 import { formatElapsed } from './tripText';
+
+const TENTH_OF_SECOND = seconds(0.1);
+
+function roundToTenthOfSecond(duration: Milliseconds): Milliseconds {
+  return Math.round(duration / TENTH_OF_SECOND) * TENTH_OF_SECOND;
+}
 
 export const EMPTY_HISTORY = 'Nenhuma viagem encerrada ainda.';
 
@@ -43,7 +49,7 @@ export function tripSummaryLines(trip: CompletedTrip, log: TripLog): string[] {
   const lines = [
     `Duração: ${formatElapsed(trip.endedAt - trip.config.startedAt)}`,
     `Verificações: ${log.checks.length}`,
-    `Tempo médio de resposta: ${average === null ? 'sem respostas' : formatDuration(Math.round(average))}`,
+    `Tempo médio de resposta: ${average === null ? 'sem respostas' : formatDuration(roundToTenthOfSecond(average))}`,
     `Etapa máxima: ${highest === null ? 'nenhuma' : ALERT_STAGE_LABELS[highest]}`,
     `Pausas registradas: ${log.breaks.length}`,
   ];

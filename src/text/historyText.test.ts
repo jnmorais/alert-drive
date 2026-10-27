@@ -68,6 +68,30 @@ describe('RF12 - resumo de cada viagem no histórico', () => {
   });
 });
 
+describe('RF12 - tempo médio de resposta arredondado no histórico', () => {
+  function answered(responseTime: number, index: number) {
+    const at = START + minutes(15) * index;
+    return [
+      { type: 'checkStarted' as const, at, interval: minutes(15), reasons: [] },
+      {
+        type: 'checkResolved' as const,
+        at: at + responseTime,
+        outcome: { respondedAt: at + responseTime, responseTime, maxStage: 'check' as const, simulatedLevel: 6 },
+      },
+    ];
+  }
+
+  it('mostra a média com no máximo uma casa decimal', () => {
+    const log = buildTripLog([...answered(seconds(5), 0), ...answered(seconds(5), 1), ...answered(seconds(31), 2)]);
+    expect(tripSummaryLines(completedTrip(), log)[2]).toBe('Tempo médio de resposta: 13,7 s');
+  });
+
+  it('mostra a média inteira sem casa decimal', () => {
+    const log = buildTripLog([...answered(seconds(4), 0), ...answered(seconds(6), 1)]);
+    expect(tripSummaryLines(completedTrip(), log)[2]).toBe('Tempo médio de resposta: 5 s');
+  });
+});
+
 describe('RF12 - linha de cada verificação no histórico', () => {
   it('mostra hora, tempo até a resposta e etapa máxima', () => {
     expect(
