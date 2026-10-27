@@ -4,7 +4,14 @@ import { minutes, seconds } from '../core/duration';
 import { getDefaultSettings } from '../core/profiles';
 import { buildTripLog } from '../core/tripLog';
 import type { CompletedTrip } from '../state/tripController';
-import { checkLine, formatLocalDateTime, formatLocalTime, tripSummaryLines, tripTitle } from './historyText';
+import {
+  checkLine,
+  formatLocalDateTime,
+  formatLocalTime,
+  HISTORY_STATUS_NOTES,
+  tripSummaryLines,
+  tripTitle,
+} from './historyText';
 
 const START = Date.UTC(2026, 9, 24, 12, 5);
 const OFFSET = -180;
@@ -106,5 +113,13 @@ describe('RF12 - linha de cada verificação no histórico', () => {
         OFFSET,
       ),
     ).toBe('09:05 · sem resposta · Etapa 3 – Máxima (madrugada)');
+  });
+});
+
+describe('RF12 - situação da gravação do histórico', () => {
+  it('diz que o histórico fica só no aparelho e avisa quando não pôde ser gravado', () => {
+    expect(HISTORY_STATUS_NOTES.saved).toBe('O histórico fica gravado só neste aparelho.');
+    expect(HISTORY_STATUS_NOTES.memoryOnly).toContain('vale só enquanto o app estiver aberto');
+    expect(HISTORY_STATUS_NOTES.loading).toBe('Carregando o histórico…');
   });
 });

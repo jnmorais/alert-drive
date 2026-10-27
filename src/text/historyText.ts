@@ -3,6 +3,7 @@ import { averageResponseTime, type CheckLogEntry, highestStageInLog, type TripLo
 import type { EpochMilliseconds, Milliseconds } from '../core/types';
 import { formatDuration } from '../simulation/format';
 import type { CompletedTrip } from '../state/tripController';
+import type { TripHistoryStatus } from '../state/tripHistory';
 import { ALERT_STAGE_LABELS, REDUCED_INTERVAL_REASON_LABELS, VEHICLE_TYPE_LABELS } from './labels';
 import { formatElapsed } from './tripText';
 
@@ -14,7 +15,11 @@ function roundToTenthOfSecond(duration: Milliseconds): Milliseconds {
 
 export const EMPTY_HISTORY = 'Nenhuma viagem encerrada ainda.';
 
-export const HISTORY_MEMORY_NOTE = 'O histórico fica guardado enquanto o app estiver aberto.';
+export const HISTORY_STATUS_NOTES: Readonly<Record<TripHistoryStatus, string>> = {
+  loading: 'Carregando o histórico…',
+  saved: 'O histórico fica gravado só neste aparelho.',
+  memoryOnly: 'Não foi possível gravar o histórico neste aparelho. Ele vale só enquanto o app estiver aberto.',
+};
 
 export const TRIP_IN_PROGRESS_NOTE = 'Há uma viagem em andamento. Ela aparece aqui quando for encerrada.';
 

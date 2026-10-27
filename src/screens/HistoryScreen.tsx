@@ -5,11 +5,12 @@ import { ActionButton } from '../components/ActionButton';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { buildTripLog } from '../core/tripLog';
 import { useTripSnapshot } from '../state/TripContext';
+import { useTripHistory } from '../state/TripHistoryContext';
 import type { CompletedTrip } from '../state/tripController';
 import {
   checkLine,
   EMPTY_HISTORY,
-  HISTORY_MEMORY_NOTE,
+  HISTORY_STATUS_NOTES,
   TRIP_IN_PROGRESS_NOTE,
   tripSummaryLines,
   tripTitle,
@@ -55,7 +56,8 @@ function TripCard({ trip }: TripCardProps) {
 export default function HistoryScreen() {
   const colors = useThemeColors();
   const snapshot = useTripSnapshot();
-  const trips = [...snapshot.completedTrips].reverse();
+  const history = useTripHistory();
+  const trips = [...history.trips].reverse();
   const textColor = { color: colors.text };
 
   return (
@@ -66,7 +68,7 @@ export default function HistoryScreen() {
       ) : (
         trips.map((trip) => <TripCard key={`${trip.config.startedAt}-${trip.endedAt}`} trip={trip} />)
       )}
-      <Text style={[styles.text, textColor]}>{HISTORY_MEMORY_NOTE}</Text>
+      <Text style={[styles.text, textColor]}>{HISTORY_STATUS_NOTES[history.status]}</Text>
     </ScreenContainer>
   );
 }
