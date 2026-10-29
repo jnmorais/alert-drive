@@ -6,11 +6,18 @@ import type { TripEffect } from '../../core/trip';
 import { runScenario, SCENARIOS } from '../../simulation/scenarios';
 import type { CompletedTrip } from '../../state/tripController';
 import { createNodeSqliteDatabase, type TestDatabase } from '../../testing/nodeSqliteDatabase';
-import { createTripHistoryStorage, migrate, SCHEMA_VERSION } from './tripHistoryStorage';
+import { migrateDatabase } from '../database/migrations';
+import { createTripHistoryStorage } from './tripHistoryStorage';
 
 const START = Date.UTC(2026, 9, 24, 12, 0);
 
 let database: TestDatabase;
+
+async function createMigratedDatabase(): Promise<TestDatabase> {
+  const created = createNodeSqliteDatabase();
+  await migrateDatabase(created);
+  return created;
+}
 
 afterEach(() => {
   database.close();
@@ -43,22 +50,22 @@ function sampleTrip(overrides: Partial<CompletedTrip> = {}): CompletedTrip {
 
 describe('RF12 - histórico gravado no banco SQLite do aparelho', () => {
   it('começa vazio', async () => {
-    database = createNodeSqliteDatabase();
-    const storage = await createTripHistoryStorage(database);
+    database = await createMigratedDatabase();
+    const storage = createTripHistoryStorage(database);
     expect(await storage.loadTrips()).toEqual([]);
   });
 
   it('grava e lê de volta a viagem com perfil, horários, configurações e eventos', async () => {
-    database = createNodeSqliteDatabase();
-    const storage = await createTripHistoryStorage(database);
+    database = await createMigratedDatabase();
+    const storage = createTripHistoryStorage(database);
     const trip = sampleTrip();
     await storage.saveTrip(trip);
     expect(await storage.loadTrips()).toEqual([trip]);
   });
 
   it('guarda as viagens na ordem em que foram encerradas', async () => {
-    database = createNodeSqliteDatabase();
-    const storage = await createTripHistoryStorage(database);
+    database = await createMigratedDatabase();
+    const storage = createTripHistoryStorage(database);
     const first = sampleTrip();
     const second = sampleTrip({
       config: { ...sampleTrip().config, vehicleType: 'truck', startedAt: START + minutes(90) },
@@ -74,15 +81,15 @@ describe('RF12 - histórico gravado no banco SQLite do aparelho', () => {
   });
 
   it('mantém o histórico ao abrir o banco de novo', async () => {
-    database = createNodeSqliteDatabase();
-    await (await createTripHistoryStorage(database)).saveTrip(sampleTrip());
-    const reopened = await createTripHistoryStorage(database);
+    database = await createMigratedDatabase();
+    await createTripHistoryStorage(database).saveTrip(sampleTrip());
+    const reopened = createTripHistoryStorage(database);
     expect(await reopened.loadTrips()).toHaveLength(1);
   });
 
   it('guarda sem perda uma viagem simulada completa', async () => {
-    database = createNodeSqliteDatabase();
-    const storage = await createTripHistoryStorage(database);
+    database = await createMigratedDatabase();
+    const storage = createTripHistoryStorage(database);
     const run = runScenario(SCENARIOS[5]!, 'bus');
     const trip: CompletedTrip = {
       config: run.finalTrip.config,
@@ -95,8 +102,8 @@ describe('RF12 - histórico gravado no banco SQLite do aparelho', () => {
   });
 
   it('não grava nada da viagem se a gravação falhar no meio', async () => {
-    database = createNodeSqliteDatabase();
-    const storage = await createTripHistoryStorage(database);
+    database = await createMigratedDatabase();
+    const storage = createTripHistoryStorage(database);
     await database.execAsync(
       "CREATE TRIGGER reject_break BEFORE INSERT ON trip_events WHEN NEW.type = 'breakRegistered' BEGIN SELECT RAISE(ABORT, 'falha simulada'); END;",
     );
@@ -107,30 +114,10 @@ describe('RF12 - histórico gravado no banco SQLite do aparelho', () => {
   });
 });
 
-describe('RF12 - versão do esquema do banco', () => {
-  it('cria as tabelas e marca a versão do esquema', async () => {
-    database = createNodeSqliteDatabase();
-    await migrate(database);
-    const version = await database.getFirstAsync<{ user_version: number }>('PRAGMA user_version', []);
-    const tables = await database.getAllAsync<{ name: string }>(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
-      [],
-    );
-    expect(version?.user_version).toBe(SCHEMA_VERSION);
-    expect(tables.map((table) => table.name)).toEqual(['trip_events', 'trips']);
-  });
-
-  it('rodar a migração duas vezes não apaga nada', async () => {
-    database = createNodeSqliteDatabase();
-    const storage = await createTripHistoryStorage(database);
-    await storage.saveTrip(sampleTrip());
-    await migrate(database);
-    expect(await storage.loadTrips()).toHaveLength(1);
-  });
-
+describe('RF12 - viagens e eventos ligados no banco', () => {
   it('apagar uma viagem apaga os eventos dela', async () => {
-    database = createNodeSqliteDatabase();
-    const storage = await createTripHistoryStorage(database);
+    database = await createMigratedDatabase();
+    const storage = createTripHistoryStorage(database);
     await storage.saveTrip(sampleTrip());
     await database.execAsync('DELETE FROM trips;');
     const events = await database.getAllAsync<{ total: number }>('SELECT COUNT(*) AS total FROM trip_events', []);

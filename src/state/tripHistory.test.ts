@@ -4,6 +4,7 @@ import { minutes } from '../core/duration';
 import { getDefaultSettings } from '../core/profiles';
 import type { Clock } from '../core/types';
 import { createTripHistoryStorage, type TripHistoryStorage } from '../services/eventLog/tripHistoryStorage';
+import { migrateDatabase } from '../services/database/migrations';
 import { createNodeSqliteDatabase } from '../testing/nodeSqliteDatabase';
 import { createTripHistoryStore, recordCompletedTrips } from './tripHistory';
 import { type CompletedTrip, createTripController, type TimerScheduler } from './tripController';
@@ -101,7 +102,8 @@ describe('RF12 - cada viagem encerrada vai para o histórico gravado', () => {
     const clock: Clock = { now: () => now };
     const controller = createTripController({ timers: noTimers });
     const database = createNodeSqliteDatabase();
-    const store = createTripHistoryStore(() => createTripHistoryStorage(database));
+    await migrateDatabase(database);
+    const store = createTripHistoryStore(async () => createTripHistoryStorage(database));
     const stop = recordCompletedTrips(controller, store);
     await store.ready();
 
@@ -118,7 +120,7 @@ describe('RF12 - cada viagem encerrada vai para o histórico gravado', () => {
     controller.end();
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const reopened = await createTripHistoryStorage(database);
+    const reopened = createTripHistoryStorage(database);
     const stored = await reopened.loadTrips();
     expect(stored).toHaveLength(1);
     expect(stored[0]).toEqual(controller.getSnapshot().completedTrips[0]);

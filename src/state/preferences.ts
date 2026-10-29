@@ -4,7 +4,7 @@ import {
   type SettingsOverrides,
   type SettingsValidationError,
 } from '../core/profiles';
-import type { VehicleType } from '../core/types';
+import { VEHICLE_TYPES, type VehicleType } from '../core/types';
 
 export interface Preferences {
   vehicleType: VehicleType;
@@ -19,6 +19,12 @@ export interface PreferencesStore {
   selectVehicle(vehicleType: VehicleType): void;
   setOverrides(vehicleType: VehicleType, overrides: SettingsOverrides): OverridesResult;
   resetOverrides(vehicleType: VehicleType): void;
+  restore(preferences: Preferences): void;
+}
+
+export interface StoredPreferences {
+  vehicleType: string;
+  overrides: Readonly<Partial<Record<string, SettingsOverrides>>>;
 }
 
 export const DEFAULT_VEHICLE_TYPE: VehicleType = 'car';
@@ -29,6 +35,24 @@ function emptyOverrides(): Record<VehicleType, SettingsOverrides> {
 
 export function createDefaultPreferences(): Preferences {
   return { vehicleType: DEFAULT_VEHICLE_TYPE, overrides: emptyOverrides() };
+}
+
+function isVehicleType(value: string): value is VehicleType {
+  return (VEHICLE_TYPES as readonly string[]).includes(value);
+}
+
+export function sanitizePreferences(stored: StoredPreferences): Preferences {
+  const overrides = emptyOverrides();
+  for (const vehicleType of VEHICLE_TYPES) {
+    const candidate = stored.overrides[vehicleType];
+    if (candidate !== undefined && customizeSettings(vehicleType, candidate).ok) {
+      overrides[vehicleType] = { ...candidate };
+    }
+  }
+  return {
+    vehicleType: isVehicleType(stored.vehicleType) ? stored.vehicleType : DEFAULT_VEHICLE_TYPE,
+    overrides,
+  };
 }
 
 export function settingsFor(preferences: Preferences, vehicleType: VehicleType = preferences.vehicleType): ProfileSettings {
@@ -69,6 +93,9 @@ export function createPreferencesStore(initial: Preferences = createDefaultPrefe
     },
     resetOverrides(vehicleType) {
       publish({ ...snapshot, overrides: { ...snapshot.overrides, [vehicleType]: {} } });
+    },
+    restore(preferences) {
+      publish(sanitizePreferences(preferences));
     },
   };
 }

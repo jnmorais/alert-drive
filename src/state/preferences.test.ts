@@ -7,6 +7,7 @@ import {
   createDefaultPreferences,
   createPreferencesStore,
   DEFAULT_VEHICLE_TYPE,
+  sanitizePreferences,
   settingsFor,
 } from './preferences';
 
@@ -67,5 +68,39 @@ describe('RF02 - personalização guardada por perfil', () => {
   it('acusa uma personalização inválida recebida de fora do armazenamento', () => {
     const invalid = { vehicleType: 'car' as const, overrides: { truck: {}, bus: {}, car: { daytimeCheckInterval: minutes(1) } } };
     expect(() => settingsFor(invalid)).toThrow('Personalização inválida guardada para car');
+  });
+});
+
+describe('RF01 e RF02 - preferências gravadas validadas ao abrir o app', () => {
+  it('mantém o perfil e as personalizações válidas', () => {
+    expect(
+      sanitizePreferences({ vehicleType: 'truck', overrides: { truck: { daytimeCheckInterval: minutes(7) } } }),
+    ).toEqual({ vehicleType: 'truck', overrides: { truck: { daytimeCheckInterval: minutes(7) }, bus: {}, car: {} } });
+  });
+
+  it('volta ao perfil padrão se o perfil gravado for desconhecido', () => {
+    expect(sanitizePreferences({ vehicleType: 'moto', overrides: {} }).vehicleType).toBe(DEFAULT_VEHICLE_TYPE);
+  });
+
+  it('descarta a personalização que deixou de ser válida, sem mexer nas outras', () => {
+    const preferences = sanitizePreferences({
+      vehicleType: 'bus',
+      overrides: {
+        bus: { breakReminderAfter: hours(6) },
+        car: { daytimeCheckInterval: minutes(12) },
+        moto: { daytimeCheckInterval: minutes(5) },
+      },
+    });
+    expect(preferences.overrides).toEqual({ truck: {}, bus: {}, car: { daytimeCheckInterval: minutes(12) } });
+  });
+
+  it('restaurar troca as preferências e avisa a tela', () => {
+    const store = createPreferencesStore();
+    const listener = jest.fn();
+    store.subscribe(listener);
+    store.restore({ vehicleType: 'truck', overrides: { truck: { breakReminderAfter: hours(4) }, bus: {}, car: {} } });
+    expect(store.getSnapshot().vehicleType).toBe('truck');
+    expect(settingsFor(store.getSnapshot()).breakReminderAfter).toBe(hours(4));
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 });
