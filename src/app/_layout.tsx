@@ -7,6 +7,7 @@ import { TripProvider } from '../state/TripContext';
 import { TripHistoryProvider } from '../state/TripHistoryContext';
 import { useAlertSound } from '../state/useAlertSound';
 import { useAlertVibration } from '../state/useAlertVibration';
+import { useAlertVoice } from '../state/useAlertVoice';
 import { SCREEN_TITLES } from '../text/screenTitles';
 import { getThemeColors } from '../theme/colors';
 import { fontSizes } from '../theme/typography';
@@ -21,6 +22,11 @@ function AlertVibration() {
   return null;
 }
 
+function AlertVoice() {
+  useAlertVoice();
+  return null;
+}
+
 export default function RootLayout() {
   const scheme = useColorScheme();
   const colors = getThemeColors(scheme);
@@ -30,6 +36,7 @@ export default function RootLayout() {
         <TripHistoryProvider>
           <AlertSound />
           <AlertVibration />
+          <AlertVoice />
           <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
           <Stack
             screenOptions={{
