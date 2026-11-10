@@ -78,4 +78,10 @@ module.exports = defineConfig([
       ],
     },
   },
+  {
+    files: ['scripts/**/*.js'],
+    languageOptions: {
+      globals: { __dirname: 'readonly', Buffer: 'readonly' },
+    },
+  },
 ]);
