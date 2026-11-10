@@ -6,12 +6,18 @@ import { PreferencesProvider } from '../state/PreferencesContext';
 import { TripProvider } from '../state/TripContext';
 import { TripHistoryProvider } from '../state/TripHistoryContext';
 import { useAlertSound } from '../state/useAlertSound';
+import { useAlertVibration } from '../state/useAlertVibration';
 import { SCREEN_TITLES } from '../text/screenTitles';
 import { getThemeColors } from '../theme/colors';
 import { fontSizes } from '../theme/typography';
 
 function AlertSound() {
   useAlertSound();
+  return null;
+}
+
+function AlertVibration() {
+  useAlertVibration();
   return null;
 }
 
@@ -23,6 +29,7 @@ export default function RootLayout() {
       <TripProvider>
         <TripHistoryProvider>
           <AlertSound />
+          <AlertVibration />
           <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
           <Stack
             screenOptions={{
