@@ -27,7 +27,10 @@ export default function AlertScreen() {
   const controller = useTripController();
   const snapshot = useTripSnapshot();
   const context = controller.responseContext();
-  const supported = RESPONSE_METHODS.filter((method) => controller.responseProvider(method) !== undefined);
+  const supported =
+    context === null
+      ? []
+      : RESPONSE_METHODS.filter((method) => controller.responseProvider(method)?.isAvailable(context) ?? false);
   const view = snapshot.trip !== null && context !== null ? describeActiveAlert(snapshot.trip, context, supported) : null;
   const fillsScreen = view?.visual === 'blinking' || view?.visual === 'fullScreen';
   const frame = useBlinkFrame(fillsScreen);

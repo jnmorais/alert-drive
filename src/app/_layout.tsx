@@ -10,6 +10,7 @@ import { useAlertSound } from '../state/useAlertSound';
 import { useAlertVibration } from '../state/useAlertVibration';
 import { useAlertVoice } from '../state/useAlertVoice';
 import { useScreenWake } from '../state/useScreenWake';
+import { usePrepareVoiceOnTripStart } from '../state/useVoiceResponse';
 import { SCREEN_TITLES } from '../text/screenTitles';
 import { getThemeColors } from '../theme/colors';
 import { fontSizes } from '../theme/typography';
@@ -34,6 +35,11 @@ function ScreenWake() {
   return null;
 }
 
+function VoicePreparation() {
+  usePrepareVoiceOnTripStart();
+  return null;
+}
+
 export default function RootLayout() {
   const scheme = useColorScheme();
   const colors = getThemeColors(scheme);
@@ -46,6 +52,7 @@ export default function RootLayout() {
             <AlertVibration />
             <AlertVoice />
             <ScreenWake />
+            <VoicePreparation />
             <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
             <Stack
               screenOptions={{

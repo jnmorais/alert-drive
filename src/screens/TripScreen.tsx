@@ -12,8 +12,10 @@ import { useGpsStatus } from '../state/GpsContext';
 import { settingsFor } from '../state/preferences';
 import { usePreferencesStore } from '../state/PreferencesContext';
 import { useAlertRedirect } from '../state/useAlertRedirect';
+import { useVoiceReadiness } from '../state/useVoiceResponse';
 import { useTripController, useTripSnapshot } from '../state/TripContext';
 import { gpsMessage } from '../text/gpsText';
+import { voiceMessage } from '../text/voiceText';
 import { VEHICLE_TYPE_LABELS } from '../text/labels';
 import { SCREEN_TITLES } from '../text/screenTitles';
 import {
@@ -38,6 +40,7 @@ export default function TripScreen() {
   const snapshot = useTripSnapshot();
   const preferencesStore = usePreferencesStore();
   const gps = gpsMessage(useGpsStatus());
+  const voice = voiceMessage(useVoiceReadiness());
   const startRequested = useRef(false);
   useAlertRedirect();
 
@@ -94,6 +97,12 @@ export default function TripScreen() {
           <Banner text={gps.text} />
         ) : (
           <Text style={[styles.body, { color: colors.text }]}>{gps.text}</Text>
+        ))}
+      {voice !== null &&
+        (voice.emphasis ? (
+          <Banner text={voice.text} />
+        ) : (
+          <Text style={[styles.body, { color: colors.text }]}>{voice.text}</Text>
         ))}
       {status.stopRecommended && <Banner text={STOP_RECOMMENDATION} />}
       {breakInfo.emphasis ? (
