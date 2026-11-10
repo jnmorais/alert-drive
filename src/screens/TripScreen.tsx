@@ -21,6 +21,7 @@ import {
   checkMessage,
   formatElapsed,
   intervalMessage,
+  KEEP_APP_OPEN_NOTE,
   movementLabel,
   STOP_RECOMMENDATION,
   stopMessage,
@@ -112,6 +113,7 @@ export default function TripScreen() {
       <ActionButton label={SCREEN_TITLES.settings} variant="secondary" onPress={() => router.push('/settings')} />
       <ActionButton label="Encerrar viagem" variant="secondary" disabled={!endAllowed} onPress={endTrip} />
       {!endAllowed && <Text style={[styles.body, { color: colors.text }]}>{END_LOCKED_WHILE_MOVING}</Text>}
+      <Text style={[styles.body, { color: colors.text }]}>{KEEP_APP_OPEN_NOTE}</Text>
     </ScreenContainer>
   );
 }

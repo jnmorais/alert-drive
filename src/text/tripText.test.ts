@@ -8,9 +8,16 @@ import {
   formatElapsed,
   formatRemaining,
   intervalMessage,
+  KEEP_APP_OPEN_NOTE,
   movementLabel,
   stopMessage,
 } from './tripText';
+
+describe('RNF06 - aviso de manter o app aberto durante a viagem', () => {
+  it('avisa que a tela fica ligada e que o app precisa ficar aberto', () => {
+    expect(KEEP_APP_OPEN_NOTE).toBe('A tela fica ligada durante a viagem. Mantenha o app aberto.');
+  });
+});
 
 const baseStatus: TripStatus = {
   movement: 'moving',

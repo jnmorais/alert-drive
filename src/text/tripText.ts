@@ -10,6 +10,8 @@ export interface BreakMessage {
   emphasis: boolean;
 }
 
+export const KEEP_APP_OPEN_NOTE = 'A tela fica ligada durante a viagem. Mantenha o app aberto.';
+
 export const STOP_RECOMMENDATION =
   'Pare assim que for seguro. Verificações a cada 5 min até a próxima pausa.';
 
