@@ -8,10 +8,12 @@ import { ScreenContainer } from '../components/ScreenContainer';
 import { describeTripStatus, isTripEndAllowed } from '../core/tripStatus';
 import { systemClock } from '../services/systemClock';
 import { deviceUtcOffsetMinutes } from '../services/timeZone';
+import { useGpsStatus } from '../state/GpsContext';
 import { settingsFor } from '../state/preferences';
 import { usePreferencesStore } from '../state/PreferencesContext';
 import { useAlertRedirect } from '../state/useAlertRedirect';
 import { useTripController, useTripSnapshot } from '../state/TripContext';
+import { gpsMessage } from '../text/gpsText';
 import { VEHICLE_TYPE_LABELS } from '../text/labels';
 import { SCREEN_TITLES } from '../text/screenTitles';
 import {
@@ -34,6 +36,7 @@ export default function TripScreen() {
   const controller = useTripController();
   const snapshot = useTripSnapshot();
   const preferencesStore = usePreferencesStore();
+  const gps = gpsMessage(useGpsStatus());
   const startRequested = useRef(false);
   useAlertRedirect();
 
@@ -85,6 +88,12 @@ export default function TripScreen() {
       <Text style={[styles.profile, { color: colors.text }]}>
         {`${VEHICLE_TYPE_LABELS[trip.config.vehicleType]}${snapshot.simulationMode ? ' · Simulação' : ''}`}
       </Text>
+      {gps !== null &&
+        (gps.emphasis ? (
+          <Banner text={gps.text} />
+        ) : (
+          <Text style={[styles.body, { color: colors.text }]}>{gps.text}</Text>
+        ))}
       {status.stopRecommended && <Banner text={STOP_RECOMMENDATION} />}
       {breakInfo.emphasis ? (
         <Banner text={breakInfo.text} />

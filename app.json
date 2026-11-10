@@ -38,6 +38,14 @@
           "recordAudioAndroid": false,
           "enableBackgroundPlayback": false
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O Alert-Drive usa a velocidade do GPS para contar o tempo de direção. A localização não sai do aparelho.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": false
+        }
       ]
     ],
     "scheme": "alert-drive"
