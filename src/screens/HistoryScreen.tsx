@@ -4,9 +4,19 @@ import { StyleSheet, Text, View } from 'react-native';
 import { ActionButton } from '../components/ActionButton';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { buildTripLog } from '../core/tripLog';
+import { shareCsvFile } from '../services/eventLog/shareCsvFile';
+import { systemClock } from '../services/systemClock';
+import { deviceUtcOffsetMinutes } from '../services/timeZone';
+import { exportTripHistory, type HistoryExportResult } from '../state/historyExport';
 import { useTripSnapshot } from '../state/TripContext';
 import { useTripHistory } from '../state/TripHistoryContext';
 import type { CompletedTrip } from '../state/tripController';
+import {
+  EXPORT_BUTTON_LABEL,
+  EXPORT_PRIVACY_NOTE,
+  EXPORT_RESULT_NOTES,
+  EXPORTING_LABEL,
+} from '../text/historyCsv';
 import {
   checkLine,
   EMPTY_HISTORY,
@@ -53,6 +63,38 @@ function TripCard({ trip }: TripCardProps) {
   );
 }
 
+function ExportSection({ trips }: { trips: readonly CompletedTrip[] }) {
+  const colors = useThemeColors();
+  const [exporting, setExporting] = useState(false);
+  const [result, setResult] = useState<HistoryExportResult | null>(null);
+  const textColor = { color: colors.text };
+
+  async function handleExport() {
+    setExporting(true);
+    setResult(null);
+    const exported = await exportTripHistory({
+      trips,
+      at: systemClock.now(),
+      utcOffsetMinutes: deviceUtcOffsetMinutes(systemClock),
+      share: shareCsvFile,
+    });
+    setResult(exported);
+    setExporting(false);
+  }
+
+  return (
+    <View style={styles.section}>
+      <ActionButton
+        label={exporting ? EXPORTING_LABEL : EXPORT_BUTTON_LABEL}
+        disabled={exporting}
+        onPress={() => void handleExport()}
+      />
+      {result !== null && <Text style={[styles.text, textColor]}>{EXPORT_RESULT_NOTES[result]}</Text>}
+      <Text style={[styles.text, textColor]}>{EXPORT_PRIVACY_NOTE}</Text>
+    </View>
+  );
+}
+
 export default function HistoryScreen() {
   const colors = useThemeColors();
   const snapshot = useTripSnapshot();
@@ -63,6 +105,7 @@ export default function HistoryScreen() {
   return (
     <ScreenContainer>
       {snapshot.trip !== null && <Text style={[styles.text, textColor]}>{TRIP_IN_PROGRESS_NOTE}</Text>}
+      {history.trips.length > 0 && <ExportSection trips={history.trips} />}
       {trips.length === 0 ? (
         <Text style={[styles.title, textColor]}>{EMPTY_HISTORY}</Text>
       ) : (
@@ -74,6 +117,9 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
+  section: {
+    gap: spacing.small,
+  },
   card: {
     borderWidth: 2,
     borderRadius: 12,
