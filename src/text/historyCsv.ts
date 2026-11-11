@@ -1,4 +1,5 @@
 import { minutes, seconds } from '../core/duration';
+import { emissionDelaysOf } from '../core/emissionDelay';
 import { STAGE_BEHAVIOR } from '../core/escalation';
 import { buildTripLog } from '../core/tripLog';
 import type { EpochMilliseconds } from '../core/types';
@@ -23,6 +24,7 @@ export const HISTORY_CSV_HEADER = [
   'etapa_maxima',
   'nivel_simulado',
   'parada_desde',
+  'atraso_emissao_ms',
 ] as const;
 
 type HistoryCsvColumn = (typeof HISTORY_CSV_HEADER)[number];
@@ -66,8 +68,18 @@ function tripEventFields(trip: CompletedTrip): TimedFields[] {
     fields: { evento: 'pausa_registrada', parada_desde: formatLocalDateTimeWithSeconds(entry.stoppedSince, offset) },
   }));
   const marks = (event: string, times: EpochMilliseconds[]) => times.map((at) => ({ at, fields: { evento: event } }));
+  const emissions = emissionDelaysOf(trip.effects).map((emission) => ({
+    at: emission.at,
+    fields: {
+      evento: 'emissao_alerta',
+      etapa_maxima: ALERT_STAGE_LABELS[emission.stage],
+      nivel_simulado: String(STAGE_BEHAVIOR[emission.stage].simulatedLevel),
+      atraso_emissao_ms: String(Math.round(emission.delay)),
+    },
+  }));
   return [
     ...checks,
+    ...emissions,
     ...marks('pre_aviso_pausa', log.breakPreWarnings),
     ...marks('lembrete_pausa', log.breakReminders),
     ...breaks,
