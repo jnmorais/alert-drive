@@ -1,4 +1,5 @@
 import { minutes, seconds } from '../core/duration';
+import { type EmissionDelaySummary, RNF05_DELAY_TARGET, summarizeEmissionDelays } from '../core/emissionDelay';
 import { averageResponseTime, type CheckLogEntry, highestStageInLog, type TripLog } from '../core/tripLog';
 import type { EpochMilliseconds, Milliseconds } from '../core/types';
 import { formatDuration } from '../simulation/format';
@@ -61,7 +62,20 @@ export function tripSummaryLines(trip: CompletedTrip, log: TripLog): string[] {
   if (log.stopRecommendations.length > 0) {
     lines.push(`Recomendações de parada: ${log.stopRecommendations.length}`);
   }
+  const delays = summarizeEmissionDelays(trip.effects);
+  if (delays !== null) {
+    lines.push(emissionDelayLine(delays));
+  }
   return lines;
+}
+
+export function formatEmissionDelay(delay: Milliseconds): string {
+  return delay < RNF05_DELAY_TARGET ? `${Math.round(delay)} ms` : formatDuration(roundToTenthOfSecond(delay));
+}
+
+export function emissionDelayLine(summary: EmissionDelaySummary): string {
+  const overTarget = summary.overTarget === 0 ? '' : ` · ${summary.overTarget} acima da meta`;
+  return `Atraso dos alertas: máx. ${formatEmissionDelay(summary.maximum)} (meta: menos de 1 s)${overTarget}`;
 }
 
 export function checkLine(check: CheckLogEntry, utcOffsetMinutes: number): string {

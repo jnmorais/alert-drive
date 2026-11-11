@@ -67,7 +67,8 @@ export type TripEffect =
   | { type: 'checkStarted'; at: EpochMilliseconds; interval: Milliseconds; reasons: ReducedIntervalReason[] }
   | { type: 'stageEntered'; at: EpochMilliseconds; stage: AlertStage }
   | { type: 'checkResolved'; at: EpochMilliseconds; outcome: EscalationOutcome }
-  | { type: 'stopRecommended'; at: EpochMilliseconds };
+  | { type: 'stopRecommended'; at: EpochMilliseconds }
+  | { type: 'emissionDelay'; at: EpochMilliseconds; stage: AlertStage; delay: Milliseconds };
 
 export interface TripUpdate {
   trip: TripState;

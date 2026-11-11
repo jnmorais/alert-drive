@@ -76,27 +76,28 @@ describe('RF12 - exportação do histórico em CSV', () => {
       'etapa_maxima',
       'nivel_simulado',
       'parada_desde',
+      'atraso_emissao_ms',
     ]);
   });
 
   it('registra início e fim de uma viagem sem eventos, com data, hora e perfil', () => {
     expect(csvLines(buildHistoryCsv([completedTrip()])).slice(1)).toEqual([
-      '1;Caminhão;real;inicio_viagem;24/10/2026 09:05:00;;;;;;',
-      '1;Caminhão;real;fim_viagem;24/10/2026 10:20:00;;;;;;',
+      '1;Caminhão;real;inicio_viagem;24/10/2026 09:05:00;;;;;;;',
+      '1;Caminhão;real;fim_viagem;24/10/2026 10:20:00;;;;;;;',
       '',
     ]);
   });
 
   it('lista verificações, avisos, pausas e recomendações em ordem de horário', () => {
     expect(csvLines(buildHistoryCsv([eventfulTrip])).slice(1)).toEqual([
-      '1;Caminhão;real;inicio_viagem;24/10/2026 09:05:00;;;;;;',
-      '1;Caminhão;real;verificacao;24/10/2026 09:15:00;10;;4;Verificação;6;',
-      '1;Caminhão;real;pre_aviso_pausa;24/10/2026 09:20:00;;;;;;',
-      '1;Caminhão;real;verificacao;24/10/2026 09:25:00;5;Pausa vencida;32,5;Etapa 2 – Obrigatória;8;',
-      '1;Caminhão;real;recomendacao_parada;24/10/2026 09:25:32;;;;;;',
-      '1;Caminhão;real;pausa_registrada;24/10/2026 10:05:00;;;;;;24/10/2026 09:45:00',
-      '1;Caminhão;real;verificacao;24/10/2026 10:15:00;5;Madrugada, Episódios recorrentes;sem resposta;Etapa 3 – Máxima;9;',
-      '1;Caminhão;real;fim_viagem;24/10/2026 10:20:00;;;;;;',
+      '1;Caminhão;real;inicio_viagem;24/10/2026 09:05:00;;;;;;;',
+      '1;Caminhão;real;verificacao;24/10/2026 09:15:00;10;;4;Verificação;6;;',
+      '1;Caminhão;real;pre_aviso_pausa;24/10/2026 09:20:00;;;;;;;',
+      '1;Caminhão;real;verificacao;24/10/2026 09:25:00;5;Pausa vencida;32,5;Etapa 2 – Obrigatória;8;;',
+      '1;Caminhão;real;recomendacao_parada;24/10/2026 09:25:32;;;;;;;',
+      '1;Caminhão;real;pausa_registrada;24/10/2026 10:05:00;;;;;;24/10/2026 09:45:00;',
+      '1;Caminhão;real;verificacao;24/10/2026 10:15:00;5;Madrugada, Episódios recorrentes;sem resposta;Etapa 3 – Máxima;9;;',
+      '1;Caminhão;real;fim_viagem;24/10/2026 10:20:00;;;;;;;',
       '',
     ]);
   });
@@ -108,13 +109,32 @@ describe('RF12 - exportação do histórico em CSV', () => {
       endedAt: START + minutes(150),
     });
     const lines = csvLines(buildHistoryCsv([completedTrip(), second]));
-    expect(lines[3]).toBe('2;Ônibus;simulação;inicio_viagem;24/10/2026 11:05:00;;;;;;');
-    expect(lines[4]).toBe('2;Ônibus;simulação;fim_viagem;24/10/2026 11:35:00;;;;;;');
+    expect(lines[3]).toBe('2;Ônibus;simulação;inicio_viagem;24/10/2026 11:05:00;;;;;;;');
+    expect(lines[4]).toBe('2;Ônibus;simulação;fim_viagem;24/10/2026 11:35:00;;;;;;;');
   });
 
   it('inclui os segundos na data e hora local', () => {
     expect(formatLocalDateTimeWithSeconds(START + seconds(7.9), OFFSET)).toBe('24/10/2026 09:05:07');
     expect(formatLocalDateTimeWithSeconds(Date.UTC(2026, 9, 25, 1, 30, 59), OFFSET)).toBe('24/10/2026 22:30:59');
+  });
+});
+
+describe('RF12 e RNF05 - atraso de emissão dos alertas no CSV', () => {
+  it('registra uma linha por verificação ou etapa emitida, com o atraso em milissegundos', () => {
+    const trip = completedTrip({
+      effects: [
+        { type: 'checkStarted', at: START + minutes(10), interval: minutes(10), reasons: [] },
+        { type: 'emissionDelay', at: START + minutes(10), stage: 'check', delay: 12.4 },
+        { type: 'stageEntered', at: START + minutes(10) + seconds(15), stage: 'preventive' },
+        { type: 'emissionDelay', at: START + minutes(10) + seconds(15), stage: 'preventive', delay: 1250 },
+      ],
+    });
+    expect(csvLines(buildHistoryCsv([trip])).slice(1, 5)).toEqual([
+      '1;Caminhão;real;inicio_viagem;24/10/2026 09:05:00;;;;;;;',
+      '1;Caminhão;real;verificacao;24/10/2026 09:15:00;10;;sem resposta;Etapa 1 – Preventiva;7;;',
+      '1;Caminhão;real;emissao_alerta;24/10/2026 09:15:00;;;;Verificação;6;;12',
+      '1;Caminhão;real;emissao_alerta;24/10/2026 09:15:15;;;;Etapa 1 – Preventiva;7;;1250',
+    ]);
   });
 });
 

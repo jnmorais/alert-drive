@@ -30,6 +30,7 @@ const EFFECT_TYPES: Readonly<Record<TripEffect['type'], true>> = {
   stageEntered: true,
   checkResolved: true,
   stopRecommended: true,
+  emissionDelay: true,
 };
 
 function isEffectType(type: string): type is TripEffect['type'] {

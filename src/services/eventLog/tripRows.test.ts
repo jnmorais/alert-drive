@@ -33,6 +33,15 @@ describe('RF12 - conversão entre viagem e linhas do banco', () => {
     expect(trip?.effects.map((effect) => effect.type)).toEqual(['breakPreWarning', 'breakReminder']);
   });
 
+  it('grava e remonta o atraso de emissão dos alertas (RNF05) sem mudar o esquema do banco', () => {
+    const values = effectRowValues(1, 0, { type: 'emissionDelay', at: START, stage: 'mandatory', delay: 37.5 });
+    expect(values).toEqual([1, 0, 'emissionDelay', START, '{"stage":"mandatory","delay":37.5}']);
+    const trip = rowsToTrip(tripRow, [
+      { trip_id: 1, position: 0, type: 'emissionDelay', at: START, data: '{"stage":"mandatory","delay":37.5}' },
+    ]);
+    expect(trip?.effects).toEqual([{ type: 'emissionDelay', at: START, stage: 'mandatory', delay: 37.5 }]);
+  });
+
   it('descarta uma viagem com perfil desconhecido', () => {
     expect(rowsToTrip({ ...tripRow, vehicle_type: 'moto' }, [])).toBeNull();
   });

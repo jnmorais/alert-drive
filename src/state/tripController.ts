@@ -1,4 +1,5 @@
 import type { ChannelChangeError, ConfigurableChannel } from '../core/alertChannels';
+import { measureEmissionDelays } from '../core/emissionDelay';
 import type { ProfileSettings } from '../core/profiles';
 import type { ResponseContext, ResponseMethod } from '../core/responsePolicy';
 import {
@@ -128,7 +129,11 @@ export function createTripController({
 
   function apply(update: TripUpdate, current: RunningTrip): void {
     syncResponseListening(update.trip, current.providers);
-    publish({ ...snapshot, trip: update.trip, effects: [...snapshot.effects, ...update.effects] }, update.effects);
+    const effects = [
+      ...update.effects,
+      ...measureEmissionDelays(update.effects, current.clock.now(), current.toRealDelay),
+    ];
+    publish({ ...snapshot, trip: update.trip, effects: [...snapshot.effects, ...effects] }, effects);
     reschedule();
   }
 

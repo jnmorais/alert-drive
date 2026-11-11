@@ -189,7 +189,10 @@ describe('Estado global da viagem - avisos para a tela e os serviços', () => {
     const unsubscribe = controller.subscribeEffects((effects) => received.push(effectTypes(effects)));
     controller.start(startParams(env.clock));
     driveFor(controller, env, minutes(10) + seconds(16));
-    expect(received).toEqual([['checkStarted'], ['stageEntered']]);
+    expect(received).toEqual([
+      ['checkStarted', 'emissionDelay'],
+      ['stageEntered', 'emissionDelay'],
+    ]);
     unsubscribe();
     env.advanceBy(seconds(20));
     expect(received).toHaveLength(2);
@@ -348,5 +351,68 @@ describe('Serviços auxiliares do estado', () => {
     expect(fired).toHaveBeenCalledTimes(1);
     expect(cancelled).not.toHaveBeenCalled();
     jest.useRealTimers();
+  });
+});
+
+describe('RNF05 - atraso medido na emissão de cada alerta', () => {
+  function lateEnvironment(lateBy: number) {
+    let now = START;
+    const pending: { dueAt: number; callback: () => void; cancelled: boolean }[] = [];
+    const clock: Clock = { now: () => now };
+    const timers: TimerScheduler = {
+      schedule(callback, delay) {
+        const timer = { dueAt: now + delay, callback, cancelled: false };
+        pending.push(timer);
+        return () => {
+          timer.cancelled = true;
+        };
+      },
+    };
+    function fireNextLate(): void {
+      const next = pending.filter((timer) => !timer.cancelled).sort((a, b) => a.dueAt - b.dueAt)[0];
+      if (next === undefined) {
+        throw new Error('nenhum disparo agendado');
+      }
+      next.cancelled = true;
+      now = next.dueAt + lateBy;
+      next.callback();
+    }
+    function setNow(value: number): void {
+      now = value;
+    }
+    return { clock, timers, fireNextLate, setNow };
+  }
+
+  function emissionDelays(controller: TripController): [string, number][] {
+    return controller
+      .getSnapshot()
+      .effects.flatMap((effect) => (effect.type === 'emissionDelay' ? [[effect.stage, effect.delay] as [string, number]] : []));
+  }
+
+  it('registra quanto depois do previsto a verificação e cada etapa foram emitidas', () => {
+    const env = lateEnvironment(120);
+    const controller = createTripController({ timers: env.timers });
+    controller.start(startParams(env.clock, { simulationMode: false }));
+    controller.pushSpeedSample(80);
+    env.setNow(START + seconds(1));
+    controller.pushSpeedSample(80);
+    env.fireNextLate();
+    env.fireNextLate();
+    expect(emissionDelays(controller)).toEqual([
+      ['check', 120],
+      ['preventive', 120],
+    ]);
+  });
+
+  it('na simulação acelerada, registra o atraso em tempo real', () => {
+    const env = lateEnvironment(0);
+    const controller = createTripController({ timers: env.timers });
+    controller.start(startParams(env.clock, { toRealDelay: (delay) => delay / 60 }));
+    controller.pushSpeedSample(80);
+    env.setNow(START + seconds(1));
+    controller.pushSpeedSample(80);
+    env.setNow(START + minutes(10) + seconds(6));
+    controller.pushSpeedSample(80);
+    expect(emissionDelays(controller)).toEqual([['check', 100]]);
   });
 });

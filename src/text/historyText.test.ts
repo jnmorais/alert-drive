@@ -6,6 +6,8 @@ import { buildTripLog } from '../core/tripLog';
 import type { CompletedTrip } from '../state/tripController';
 import {
   checkLine,
+  emissionDelayLine,
+  formatEmissionDelay,
   formatLocalDateTime,
   formatLocalTime,
   HISTORY_STATUS_NOTES,
@@ -113,6 +115,31 @@ describe('RF12 - linha de cada verificação no histórico', () => {
         OFFSET,
       ),
     ).toBe('09:05 · sem resposta · Etapa 3 – Máxima (madrugada)');
+  });
+});
+
+describe('RNF05 - atraso dos alertas no resumo da viagem', () => {
+  it('mostra o maior atraso medido e a meta de menos de 1 s', () => {
+    const trip = completedTrip({
+      effects: [
+        { type: 'emissionDelay', at: START, stage: 'check', delay: 8.6 },
+        { type: 'emissionDelay', at: START + seconds(15), stage: 'preventive', delay: 41 },
+      ],
+    });
+    expect(tripSummaryLines(trip, buildTripLog(trip.effects)).at(-1)).toBe(
+      'Atraso dos alertas: máx. 41 ms (meta: menos de 1 s)',
+    );
+  });
+
+  it('conta os atrasos acima da meta e mostra os atrasos longos em segundos', () => {
+    expect(emissionDelayLine({ count: 3, maximum: seconds(1.26), average: 500, overTarget: 2 })).toBe(
+      'Atraso dos alertas: máx. 1,3 s (meta: menos de 1 s) · 2 acima da meta',
+    );
+    expect(formatEmissionDelay(999.4)).toBe('999 ms');
+  });
+
+  it('não mostra a linha em viagens sem medição', () => {
+    expect(tripSummaryLines(completedTrip(), buildTripLog([])).some((line) => line.startsWith('Atraso'))).toBe(false);
   });
 });
 
