@@ -2,13 +2,21 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { VEHICLE_TYPES } from '../core/types';
+import { shareTextFile } from '../services/eventLog/shareCsvFile';
+import { systemClock } from '../services/systemClock';
+import { deviceUtcOffsetMinutes } from '../services/timeZone';
 import { buildOverallSummaryText, createAllScenarioReports, type ScenarioReport } from '../simulation/report';
+import type { ScenarioReportKind } from '../simulation/reportFiles';
 import { SCENARIOS } from '../simulation/scenarios';
+import { exportScenarioReport, type ScenarioReportExportResult } from '../state/scenarioReportExport';
+import { EXPORT_PRIVACY_NOTE, EXPORTING_LABEL } from '../text/historyCsv';
 import {
   approvalLabel,
   AUTOMATIC_SCENARIOS_NOTE,
   groupReports,
   overallResultText,
+  REPORT_EXPORT_LABELS,
+  REPORT_EXPORT_NOTES,
   RUNNING_SCENARIOS_LABEL,
   runScenariosLabel,
 } from '../text/scenarioResultsText';
@@ -17,6 +25,45 @@ import { useThemeColors } from '../theme/useThemeColors';
 import { ActionButton } from './ActionButton';
 
 const PAINT_BEFORE_RUN_DELAY = 50;
+
+const REPORT_KINDS: readonly ScenarioReportKind[] = ['csv', 'summary'];
+
+function ReportExport({ reports }: { reports: readonly ScenarioReport[] }) {
+  const colors = useThemeColors();
+  const [exporting, setExporting] = useState<ScenarioReportKind | null>(null);
+  const [result, setResult] = useState<ScenarioReportExportResult | null>(null);
+  const textColor = { color: colors.text };
+
+  async function handleExport(kind: ScenarioReportKind): Promise<void> {
+    setExporting(kind);
+    setResult(null);
+    setResult(
+      await exportScenarioReport({
+        reports,
+        kind,
+        at: systemClock.now(),
+        utcOffsetMinutes: deviceUtcOffsetMinutes(systemClock),
+        share: shareTextFile,
+      }),
+    );
+    setExporting(null);
+  }
+
+  return (
+    <View style={styles.panel}>
+      {REPORT_KINDS.map((kind) => (
+        <ActionButton
+          key={kind}
+          label={exporting === kind ? EXPORTING_LABEL : REPORT_EXPORT_LABELS[kind]}
+          disabled={exporting !== null}
+          onPress={() => void handleExport(kind)}
+        />
+      ))}
+      {result !== null && <Text style={[styles.text, textColor]}>{REPORT_EXPORT_NOTES[result]}</Text>}
+      <Text style={[styles.text, textColor]}>{EXPORT_PRIVACY_NOTE}</Text>
+    </View>
+  );
+}
 
 export function AutomaticScenariosPanel() {
   const colors = useThemeColors();
@@ -89,6 +136,7 @@ export function AutomaticScenariosPanel() {
               {buildOverallSummaryText(reports)}
             </Text>
           )}
+          <ReportExport reports={reports} />
         </View>
       )}
     </View>

@@ -6,8 +6,20 @@ import {
   approvalLabel,
   groupReports,
   overallResultText,
+  REPORT_EXPORT_LABELS,
+  REPORT_EXPORT_NOTES,
   runScenariosLabel,
 } from './scenarioResultsText';
+
+describe('RF14 - textos da exportação do relatório dos cenários', () => {
+  it('oferece o CSV e o resumo e informa o resultado', () => {
+    expect(REPORT_EXPORT_LABELS).toEqual({ csv: 'Exportar relatório (CSV)', summary: 'Exportar resumo (texto)' });
+    expect(REPORT_EXPORT_NOTES).toEqual({
+      shared: 'Relatório dos cenários exportado.',
+      failed: 'Não foi possível exportar o relatório neste aparelho.',
+    });
+  });
+});
 
 const reports = createAllScenarioReports({ step: seconds(5) });
 

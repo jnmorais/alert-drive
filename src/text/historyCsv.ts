@@ -5,10 +5,11 @@ import type { EpochMilliseconds } from '../core/types';
 import { CSV_LINE_BREAK, CSV_SEPARATOR, escapeCsvField, formatDecimal, NO_RESPONSE_LABEL } from '../simulation/report';
 import type { HistoryExportResult } from '../state/historyExport';
 import type { CompletedTrip } from '../state/tripController';
+import { exportFileName, UTF8_BYTE_ORDER_MARK } from './exportFiles';
 import { formatLocalDateTime } from './historyText';
 import { ALERT_STAGE_LABELS, REDUCED_INTERVAL_REASON_LABELS, VEHICLE_TYPE_LABELS } from './labels';
 
-export const UTF8_BYTE_ORDER_MARK = '﻿';
+export { UTF8_BYTE_ORDER_MARK };
 
 export const HISTORY_CSV_HEADER = [
   'viagem',
@@ -105,9 +106,7 @@ export function buildHistoryCsv(trips: readonly CompletedTrip[]): string {
 }
 
 export function historyExportFileName(at: EpochMilliseconds, utcOffsetMinutes: number): string {
-  const local = new Date(at + minutes(utcOffsetMinutes));
-  const date = `${local.getUTCFullYear()}-${twoDigits(local.getUTCMonth() + 1)}-${twoDigits(local.getUTCDate())}`;
-  return `alert-drive-historico-${date}-${twoDigits(local.getUTCHours())}${twoDigits(local.getUTCMinutes())}.csv`;
+  return exportFileName('alert-drive-historico', at, utcOffsetMinutes, 'csv');
 }
 
 export function buildHistoryCsvFile(

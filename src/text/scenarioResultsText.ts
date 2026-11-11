@@ -1,6 +1,18 @@
 import type { VehicleType } from '../core/types';
 import type { ScenarioReport } from '../simulation/report';
+import type { ScenarioReportKind } from '../simulation/reportFiles';
+import type { ScenarioReportExportResult } from '../state/scenarioReportExport';
 import { VEHICLE_TYPE_LABELS } from './labels';
+
+export const REPORT_EXPORT_LABELS: Readonly<Record<ScenarioReportKind, string>> = {
+  csv: 'Exportar relatório (CSV)',
+  summary: 'Exportar resumo (texto)',
+};
+
+export const REPORT_EXPORT_NOTES: Readonly<Record<ScenarioReportExportResult, string>> = {
+  shared: 'Relatório dos cenários exportado.',
+  failed: 'Não foi possível exportar o relatório neste aparelho.',
+};
 
 export interface ProfileResult {
   vehicleType: VehicleType;
